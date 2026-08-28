@@ -1,10 +1,7 @@
-"""
-LaunchLab UniFAP - Semana 1
-Simulacao da base sintetica de solicitantes
+"""Simula a base sintetica de solicitantes e compara a regra legada com a nova.
 
-Gera uma coorte sintetica de solicitantes, submete cada um a regra legada e
-a regra nova (importada de triagem.py, sem reimplementar a logica) e mede a
-diferenca. Os numeros do README (secoes 5 e 7) saem daqui.
+A regra nova vem importada de triagem.py: o que se mede aqui e o codigo que
+roda em producao, nao uma copia dele. Os numeros do README saem deste script.
 
 Uso: python3 src/simulacao.py
 """
@@ -13,21 +10,17 @@ import random
 
 from triagem import LIMIAR_APROVACAO, avaliar
 
-# ---------------------------------------------------------------------------
-# PREMISSAS DA COORTE SINTETICA
-# ---------------------------------------------------------------------------
+SEMENTE = 42                    # fixa, para a simulacao ser reproduzivel
+N_SOLICITANTES = 500            # solicitacoes por mes no posto
 
-SEMENTE = 42                    # fixa: a simulacao e reproduzivel
-N_SOLICITANTES = 500            # volume mensal de solicitacoes no posto
-
-# Composicao por vinculo. Publico de microcredito comunitario em area
-# periferica: majoritariamente informal, bem acima da media nacional.
+# Publico de microcredito comunitario em area periferica: majoritariamente
+# informal, bem acima da media nacional de 38,1% (PNAD Continua 2025).
 FATIA_INFORMAL_PURO = 0.60      # renda CLT = 0
-FATIA_RENDA_PARCIAL = 0.22      # bico/CLT parcial, abaixo da referencia
+FATIA_RENDA_PARCIAL = 0.22      # bico/CLT abaixo da referencia
 FATIA_FORMAL_PLENO = 0.18       # CLT igual ou acima da referencia
 
-# Distribuicao do Score Social: Beta(5, 3) reescalada para 0-100.
-# Media 62,5 pontos, assimetrica a direita: a maioria do publico paga em dia.
+# Beta(5, 3) reescalada para 0-100: media 62,5, assimetrica a direita.
+# Traduz a premissa de que a maioria do publico paga suas contas em dia.
 SCORE_ALFA = 5.0
 SCORE_BETA = 3.0
 
@@ -40,10 +33,6 @@ RENDA_FORMAL_SIGMA_LOG = 0.45
 LEGADO_SCORE_MINIMO = 60
 LEGADO_RENDA_MINIMA = 1500.0
 
-# ---------------------------------------------------------------------------
-# PREMISSAS FINANCEIRAS
-# ---------------------------------------------------------------------------
-
 TICKET_MEDIO = 1200.00
 PRAZO_MESES = 12
 JUROS_MENSAL = 0.025
@@ -52,12 +41,11 @@ CUSTO_OPERACIONAL_CONTRATO = 60.00
 
 
 def gerar_coorte(semente=SEMENTE, n=N_SOLICITANTES):
-    """Gera a coorte sintetica como lista de (score_social, renda_formal).
+    """Gera a coorte como lista de (segmento, score_social, renda_formal).
 
-    Premissa central: o Score Social e sorteado da MESMA distribuicao para os
-    tres segmentos, independente do vinculo. Isto e a hipotese do projeto
-    (formalidade nao prediz adimplencia) assumida como verdadeira, nao um
-    resultado demonstrado pela simulacao. Ver ressalva no README, secao 7.
+    O score e sorteado da MESMA distribuicao nos tres segmentos: a hipotese do
+    projeto (formalidade nao prediz adimplencia) entra aqui como premissa, nao
+    como resultado. Ressalva detalhada no README, secao 7.2.
     """
     rng = random.Random(semente)
     coorte = []
@@ -73,8 +61,8 @@ def gerar_coorte(semente=SEMENTE, n=N_SOLICITANTES):
             renda = rng.uniform(RENDA_PARCIAL_MIN, RENDA_PARCIAL_MAX)
         else:
             segmento = "formal_pleno"
-            # trunca a lognormal na referencia: o segmento e, por definicao,
-            # quem tem CLT igual ou acima de R$ 1.500
+            # trunca na referencia: o segmento e, por definicao, quem tem
+            # CLT igual ou acima de R$ 1.500
             renda = RENDA_PARCIAL_MAX - 1
             while renda < RENDA_PARCIAL_MAX:
                 renda = rng.lognormvariate(RENDA_FORMAL_MEDIA_LOG, RENDA_FORMAL_SIGMA_LOG)
@@ -159,11 +147,10 @@ def pct(parte, total):
 
 
 def analise_sensibilidade(n_sementes=50):
-    """Repete a simulacao com sementes diferentes.
+    """Repete a simulacao variando a semente.
 
-    Serve para separar o que e efeito da regra do que e sorte de uma coorte
-    especifica, e para verificar em todas as coortes a propriedade central:
-    a regra nova nunca retira uma aprovacao que a regra legada concedia.
+    Separa o efeito da regra da sorte de uma coorte especifica e verifica a
+    propriedade central: a regra nova nunca retira uma aprovacao do legado.
     """
     legado, novo, ganhos, regressoes = [], [], [], 0
 

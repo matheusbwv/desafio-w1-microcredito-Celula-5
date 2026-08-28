@@ -1,8 +1,4 @@
-"""
-LaunchLab UniFAP - Semana 1
-Sistema de Score de Microcredito Inclusivo
-Cooperativa de Microcredito Comunitario - Celula 5 (Sistemas de Informacao)
-"""
+"""Sistema de Score de Microcredito Inclusivo - LaunchLab UniFAP, Celula 5."""
 
 LIMIAR_APROVACAO = 60.0
 PESO_MAX_RENDA = 20.0      # teto: impede que renda alta compense score ruim
@@ -22,8 +18,12 @@ def calcular_bonus_renda(renda_formal):
 
 
 def avaliar(score_social, renda_formal):
+    # etapa 1: o score social e a analise primaria; a renda so entra na etapa 2
+    pontuacao_final = score_social
+
     bonus_renda = calcular_bonus_renda(renda_formal)
-    pontuacao_final = score_social + bonus_renda
+    pontuacao_final += bonus_renda
+
     aprovado = pontuacao_final >= LIMIAR_APROVACAO
 
     return pontuacao_final, bonus_renda, aprovado
@@ -46,7 +46,7 @@ def calcular_triagem():
         print("Entrada invalida: informe apenas numeros.")
         return
 
-    # clamp em vez de perguntar de novo (a CI manda so 2 linhas)
+    # clamp em vez de perguntar de novo: a execucao recebe so 2 linhas
     score_social, renda_formal = sanitizar_entradas(score_social, renda_formal)
 
     pontuacao_final, bonus_renda, aprovado = avaliar(score_social, renda_formal)
